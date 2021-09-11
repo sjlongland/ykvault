@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from typing import Any, Optional, Mapping, MutableMapping, NamedTuple
+from typing import Any, Optional, Sequence, Mapping, MutableMapping, NamedTuple
 
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -173,6 +173,21 @@ class YKVault(object):
         otp = YubikeyOTP.parse(otpstring)
         context = self._state[otp.public_uid]
         return context.get_secret(passphrase, otp)
+
+    def forget_secret(self, public_uid: bytes):
+        """
+        Delete a YubiKey context from the vault.
+        """
+        assert self._state is not None, 'Unseal the vault first'
+        self._state.pop(public_uid)
+
+    @property
+    def known_uids(self) -> Sequence[bytes]:
+        """
+        Return a list of all known YubiKey UIDs
+        """
+        assert self._state is not None, 'Unseal the vault first'
+        return list(self._state.keys())
 
 
 class YKSecretContext(NamedTuple):
