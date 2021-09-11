@@ -281,18 +281,21 @@ class YKContext(object):
         # We're good… create a new context state and save it
         self._update_context(context_key, otp, context.salt)
 
-        # Return the derived secret
-        return context_key
+        # Derive a new key with the salt, OTP and the user's passphrase
+        return self._derive_key(passphrase, otp, context.salt)
 
-    def _derive_key(self, passphrase: str, otp: YubikeyOTP) -> bytes:
+    def _derive_key(
+            self, passphrase: str, otp: YubikeyOTP, *args : bytes
+    ) -> bytes:
         """
-        Derive a symmetric AES key from the YubiKey private UID and
-        the user's passphrase.
+        Derive a symmetric AES key from the YubiKey private UID,
+        the user's passphrase and any optional other pieces of data.
         """
         return self._context_kdf.derive(
                 combine_keys(
                     passphrase.encode('utf-8'),
-                    otp.token.private_uid
+                    otp.token.private_uid,
+                    *args
                 )
         )
 
