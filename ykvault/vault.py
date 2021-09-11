@@ -17,18 +17,20 @@ from .kdf import KDF, init_kdf, load_kdf
 from .cipher import CBCCipherText, load, dump
 
 
-def combine_keys(k1: bytes, k2: bytes) -> bytes:
+def combine_keys(*keys: bytes) -> bytes:
     """
-    Combine two keys together, producing a "composite" key.
+    Combine two or more keys together, producing a "composite" key.
     """
-    k1_hash = hashlib.sha3_512(k1).digest()
-    k2_hash = hashlib.sha3_512(k2).digest()
+    key = hashlib.sha3_512(keys[0]).digest()
+    for k in keys[1:]:
+        next_key = hashlib.sha3_512(k).digest()
 
-    return bytes([
-        a ^ b
-        for (a, b)
-        in zip(k1_hash, k2_hash)
-    ])
+        key = bytes([
+            a ^ b
+            for (a, b)
+            in zip(key, next_key)
+        ])
+    return key
 
 
 class YKVault(object):
