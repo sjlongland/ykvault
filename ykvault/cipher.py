@@ -21,11 +21,11 @@ def load(key: bytes, ciphertext: CBCCipherText) -> bytes:
             modes.CBC(ciphertext.iv)
     ).decryptor()
 
+    cleartext = cipher.update(ciphertext.ciphertext) + cipher.finalize()
+
     unpadder = padding.PKCS7(128).unpadder()
-    return unpadder.update(
-            cipher.update(ciphertext.ciphertext)
-            + cipher.finalize()
-    ) + unpadder.finalize()
+    return unpadder.update(cleartext) \
+            + unpadder.finalize()
 
 
 def dump(key: bytes, data: bytes) -> CBCCipherText:
@@ -41,10 +41,9 @@ def dump(key: bytes, data: bytes) -> CBCCipherText:
 
     padder = padding.PKCS7(128).padder()
 
+    cleartext = padder.update(data) + padder.finalize()
+
     return CBCCipherText(
             iv=iv,
-            ciphertext=cipher.update(
-                padder.update(data)
-                + padder.finalize()
-            ) + cipher.finalize()
+            ciphertext=cipher.update(cleartext) + cipher.finalize()
     )
