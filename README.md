@@ -47,8 +47,9 @@ access, you must unseal the vault by providing this passphrase.  This decrypts
 the vault contents.
 
 The vault contains the public UID, counter values and key of each YubiKey known
-to it.  The counter values are stored encrypted with a context key, derived
-from the YubiKey's _private UID_ and another passphrase supplied by you.
+to it.  The counter values and a randomly generated salt are stored encrypted
+with a context key, derived from the YubiKey's _private UID_ and another
+passphrase supplied by you.
 
 When you supply a valid passphrase and OTP message to the `get_secret` method:
 
@@ -58,7 +59,9 @@ When you supply a valid passphrase and OTP message to the `get_secret` method:
 3. the context data is decrypted
 4. the counters are compared and validated, if the message is a repeat, we
    reject the OTP.
-5. if counters match, the context key is returned.
+5. if counters match, the _private UID_, passphrase and a random salt stored
+   with the counter values, are combined together to produce a key for user
+   data encryption use.
 
 ### The nitty gritty
 
@@ -67,6 +70,7 @@ When you supply a valid passphrase and OTP message to the `get_secret` method:
     * Vault and user data: `AES-256 CBC`
  * Key derivative function: `scrypt`
  * Vault file format: `cbor`
+ * Block cipher padding format: PKCS#7
 
 ## Does it work?
 
@@ -83,8 +87,5 @@ own risk.
 1. This code needs a UI to be truly useful.  Maybe ability to work with `cryfs`
    or `cryptsetup` so you can mount a USB stick using 2FA.
 2. I'm using `scrypt` right now as the KDF, it'd be nice to support `argon2id`.
-3. Rather than returning the context data, we should maybe store a salt in
-   there with the counters, and use that in addition to the old counter value
-   to derive a key that _actually_ encrypts user data.
-4. Support for other encryption settings would be good.  Can't change what
+3. Support for other encryption settings would be good.  Can't change what
    Yubico decided for the OTP messages, but everything else is in our control.
