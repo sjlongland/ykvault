@@ -178,6 +178,7 @@ class YKVault(object):
 class YKSecretContext(NamedTuple):
     usage_ctr: int
     session_ctr: int
+    salt: bytes
 
     @classmethod
     def load(cls, key: bytes, ciphertext: CBCCipherText):
@@ -191,7 +192,8 @@ class YKSecretContext(NamedTuple):
                 data=cbor.dumps(
                     dict(
                         usage_ctr=self.usage_ctr,
-                        session_ctr=self.session_ctr
+                        session_ctr=self.session_ctr,
+                        salt=self.salt
                     )
                 )
         )
@@ -217,6 +219,9 @@ class YKContext(object):
         Create a new YubiKey context from the given key, passphrase
         and OTP.
         """
+        # Pick out the user key salt length
+        user_salt_len = kwargs.pop('user_salt_len', 32)
+
         # Initialise with a dummy context for now
         context = cls(key=key, iv=b'', context=b'', **kwargs)
 
@@ -224,7 +229,7 @@ class YKContext(object):
         context_key = context._derive_key(passphrase, otp)
 
         # Save the new context and return it.
-        context._update_context(context_key, otp)
+        context._update_context(context_key, otp, token_bytes(user_salt_len))
         return context
 
 
@@ -274,7 +279,7 @@ class YKContext(object):
             raise ValueError('OTP is replayed')
 
         # We're good… create a new context state and save it
-        self._update_context(context_key, otp)
+        self._update_context(context_key, otp, context.salt)
 
         # Return the derived secret
         return context_key
@@ -291,12 +296,13 @@ class YKContext(object):
                 )
         )
 
-    def _update_context(self, context_key: bytes, otp: YubikeyOTP):
+    def _update_context(self, context_key: bytes, otp: YubikeyOTP, salt: bytes):
         """
         Write a new context with the given OTP and key.
         """
         context = YKSecretContext(
                 session_ctr=otp.token.session_ctr,
-                usage_ctr=otp.token.usage_ctr
+                usage_ctr=otp.token.usage_ctr,
+                salt=salt
         )
         self._context = context.dump(context_key)
