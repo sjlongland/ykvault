@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from typing import Optional, Mapping, MutableMapping, NamedTuple
+from typing import Any, Optional, Mapping, MutableMapping, NamedTuple
 
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -200,11 +200,13 @@ class YKContext(object):
     A YubiKey Context stored within the vault.
     """
     @classmethod
-    def load(cls, context: Mapping[str, bytes]):
+    def load(cls, context: Mapping[str, Any]):
         return cls(
-                key=context['key'],
-                iv=context['iv'],
-                context=context['context']
+                key=context.pop('key'),
+                iv=context.pop('iv'),
+                context=context.pop('context'),
+                kdf_name=context.pop('kdf_name', 'scrypt'),
+                **context
         )
 
     @classmethod
@@ -237,14 +239,15 @@ class YKContext(object):
         self._context_kdf = load_kdf(**kwargs)
 
     @property
-    def state(self) -> Mapping[str, bytes]:
+    def state(self) -> Mapping[str, Any]:
         """
         Dump the state of the context for persistance purposes.
         """
         return dict(
                 key=self._key,
                 iv=self._context.iv,
-                context=self._context.ciphertext
+                context=self._context.ciphertext,
+                **self._context_kdf.settings
         )
 
     def get_secret(self, passphrase: str, encrypted_otp: YubikeyOTP):
