@@ -1,3 +1,11 @@
+[Find this project on codeberg](https://codeberg.org/sjlongland/ykvault)
+
+As a result of Github's decision to force AI-generated issues with no opt-out,
+I am migrating personal projects of mine to Codeberg.  The project at Github
+will be archived.
+
+----
+
 # Proof-of-concept YubiKey-backed vault
 
 This is a proof-of-concept vault designed to use a YubiKey in OTP mode as the
